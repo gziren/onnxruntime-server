@@ -12,6 +12,7 @@ set(SOURCE_FILES
         task/get_session.cpp
 
         onnx/version.cpp
+        onnx/providers.cpp
         onnx/session_key.cpp
         onnx/session_key_with_option.cpp
         onnx/session.cpp
@@ -40,17 +41,21 @@ if (NOT CUDA_FOUND)
 endif ()
 
 if (CUDA_FOUND)
-    message(STATUS "CUDA support found. Compiling with CUDA support.")
+    message(STATUS "CUDA library found.")
     enable_language(CUDA)
-    add_definitions(-DHAS_CUDA)
-    set(SOURCE_FILES ${SOURCE_FILES} onnx/cuda/session_options.cpp)
     pkg_search_module(ONNX_RUNTIME IMPORTED_TARGET libonnxruntime_cuda)
     if (NOT ONNX_RUNTIME_FOUND)
         list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
         find_package(ONNXRuntime COMPONENTS cuda REQUIRED)
     endif ()
+
+    if (ONNX_RUNTIME_WITH_CUDA_PROVIDER)
+        message(STATUS "ONNX Runtime with CUDA provider found. Enabling CUDA support.")
+        add_definitions(-DHAS_CUDA)
+        set(SOURCE_FILES ${SOURCE_FILES} onnx/cuda/session_options.cpp)
+    endif ()
 else ()
-    message(STATUS "CUDA support not found. Compiling without CUDA support.")
+    message(STATUS "CUDA library not found.")
     pkg_check_modules(ONNX_RUNTIME IMPORTED_TARGET libonnxruntime)
     if (NOT ONNX_RUNTIME_FOUND)
         list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -63,7 +68,7 @@ endif ()
 if (WIN32)
     find_package(Boost COMPONENTS serialization system filesystem program_options thread asio beast REQUIRED)
 else ()
-    find_package(Boost COMPONENTS serialization system filesystem program_options thread REQUIRED)
+    find_package(Boost COMPONENTS serialization filesystem program_options thread REQUIRED)
 endif ()
 
 # openssl
@@ -76,6 +81,9 @@ if (NOT NO_ONNXRUNTIME_SERVER_OPENSSL)
     endif ()
 endif ()
 
+if (WIN32)
+    add_compile_definitions(_WIN32_WINNT=0x0A00)
+endif ()
 
 include_directories(${Boost_INCLUDE_DIR} ${ONNX_RUNTIME_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS} ${ONNX_RUNTIME_LIBRARY_DIRS} ${OPENSSL_LIBRARY_DIRS})
