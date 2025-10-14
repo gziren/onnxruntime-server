@@ -170,14 +170,14 @@ sudo cmake --install build --prefix /usr/local/onnxruntime-server
 
 - Docker hub: [kibaes/onnxruntime-server](https://hub.docker.com/r/kibaes/onnxruntime-server)
     - [
-      `1.23.1-linux-cuda12`](https://github.com/kibae/onnxruntime-server/blob/main/deploy/build-docker/linux-cuda12.dockerfile)
+      `1.23.1a-linux-cuda12`](https://github.com/kibae/onnxruntime-server/blob/main/deploy/build-docker/linux-cuda12.dockerfile)
       amd64(CUDA 12.x, cuDNN 9.x)
     - [
-      `1.23.1-linux-cpu`](https://github.com/kibae/onnxruntime-server/blob/main/deploy/build-docker/linux-cpu.dockerfile)
+      `1.23.1a-linux-cpu`](https://github.com/kibae/onnxruntime-server/blob/main/deploy/build-docker/linux-cpu.dockerfile)
       amd64, arm64
 
 ```shell
-DOCKER_IMAGE=kibae/onnxruntime-server:1.23.1-linux-cuda12 # or kibae/onnxruntime-server:1.23.1-linux-cpu	
+DOCKER_IMAGE=kibae/onnxruntime-server:1.23.1a-linux-cuda12 # or kibae/onnxruntime-server:1.23.1a-linux-cpu	
 
 docker pull ${DOCKER_IMAGE}
 
@@ -211,6 +211,26 @@ docker run --name onnxruntime_server_container -d --rm --gpus all \
     - <picture><img src="https://cdn.simpleicons.org/swagger/green" height="16" align="center" /></picture> [Swagger Sample](https://kibae.github.io/onnxruntime-server/swagger/)
 - [TCP API](https://github.com/kibae/onnxruntime-server/wiki/TCP-API)
 
+## ONNXRuntime Extensions Support
+
+To use the [onnxruntime-extensions](https://github.com/microsoft/onnxruntime-extensions)(Custom Ops Library), set the
+options as follows when creating a session.
+
+```json
+{
+  "model": "string",
+  "version": "string",
+  "option": {
+    "cuda": ...,
+    "ortextensions_path": "/absolute/path/to/libonnxruntime_extensions.so"
+  }
+}
+```
+
+For more details on the session creation request, please refer to
+the [API documentation](https://kibae.github.io/onnxruntime-server/swagger/#/ONNX%20Runtime%20Session/createSession).
+
+
 ----
 
 # How to use
@@ -219,7 +239,7 @@ docker run --name onnxruntime_server_container -d --rm --gpus all \
 
 ## Simple usage examples
 
-#### Example of creating ONNX sessions at server startup
+### Example of creating ONNX sessions at server startup
 
 ```mermaid
 %%{init: {
@@ -258,7 +278,7 @@ sequenceDiagram
     end
 ```
 
-#### Example of the client creating and running ONNX sessions
+### Example of the client creating and running ONNX sessions
 
 ```mermaid
 %%{init: {

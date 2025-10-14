@@ -14,6 +14,28 @@ Orts::onnx::session::session(session_key key, const json &option)
 	: session_options(), created_at(std::chrono::system_clock::now()), allocator(), key(std::move(key)) {
 	_option["cuda"] = false;
 
+	if (option.contains("ortextensions_path") && option["ortextensions_path"].is_string()) {
+		auto ext_path_str = option["ortextensions_path"].get<std::string>();
+#ifdef _WIN32
+		int size_needed = MultiByteToWideChar(CP_ACP, 0, ext_path_str.c_str(), -1, NULL, 0);
+		std::wstring wstr(size_needed, 0);
+		MultiByteToWideChar(CP_ACP, 0, ext_path_str.c_str(), -1, &wstr[0], size_needed);
+
+		auto ext_path = wstr.c_str();
+#else
+		auto ext_path = ext_path_str.c_str();
+#endif
+		OrtStatus *status = Ort::GetApi().RegisterCustomOpsLibrary_V2(session_options, ext_path);
+		if (status != nullptr) {
+			const char *err = Ort::GetApi().GetErrorMessage(status);
+			std::string msg = err ? err : "unknown error";
+			Ort::GetApi().ReleaseStatus(status);
+			throw runtime_error(std::string("Failed to register ORT extensions: ") + msg);
+		}
+
+		_option["ortextensions_path"] = option["ortextensions_path"];
+	}
+
 	if (providers::available_providers.has_cuda() && option.contains("cuda") && (
 		    !option["cuda"].is_boolean() || option["cuda"].get<bool>())) {
 #ifdef HAS_CUDA
@@ -70,7 +92,7 @@ void Orts::onnx::session::init() {
 		override_shape("input_shape", _inputs.back());
 	}
 	_option.erase("input_shape");
-	for (auto &name : _inputNames)
+	for (auto &name: _inputNames)
 		inputNames.push_back(name.c_str());
 
 	// output metadata
@@ -87,7 +109,7 @@ void Orts::onnx::session::init() {
 		override_shape("output_shape", _outputs.back());
 	}
 	_option.erase("output_shape");
-	for (auto &name : _outputNames)
+	for (auto &name: _outputNames)
 		outputNames.push_back(name.c_str());
 
 	PLOG(L_DEBUG) << "Session created: " << key.model_name << "/" << key.model_version << std::endl;
@@ -149,13 +171,13 @@ json onnxruntime_server::onnx::session::to_json() const {
 	dict["execution_count"] = execution_count;
 
 	json::object_t inputs;
-	for (auto &input : _inputs) {
+	for (auto &input: _inputs) {
 		inputs[input.name] = input.type_to_string();
 	}
 	dict["inputs"] = inputs;
 
 	json::object_t outputs;
-	for (auto &output : _outputs) {
+	for (auto &output: _outputs) {
 		outputs[output.name] = output.type_to_string();
 	}
 	dict["outputs"] = outputs;
